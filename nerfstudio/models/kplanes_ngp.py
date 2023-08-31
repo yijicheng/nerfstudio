@@ -231,6 +231,9 @@ class KPlanesNGPModel(Model):
         # self.lpips = LearnedPerceptualImagePatchSimilarity(normalize=True)
         self.temporal_distortion = len(self.config.grid_base_resolution) == 4  # for viewer
 
+        if not self.config.multiple_fitting and self.config.decoder_checkpoint is not None:
+            self._reload_checkpoint()
+
         if self.config.multiple_fitting and get_world_size() > 1:
             self._set_ddp_ignore()
 
