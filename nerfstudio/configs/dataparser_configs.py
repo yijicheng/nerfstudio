@@ -37,6 +37,8 @@ from nerfstudio.data.dataparsers.sdfstudio_dataparser import SDFStudioDataParser
 from nerfstudio.data.dataparsers.sitcoms3d_dataparser import Sitcoms3DDataParserConfig
 from nerfstudio.plugins.registry_dataparser import discover_dataparsers
 
+from nerfstudio.data.dataparsers.rodin_dataparser import RodinDataParserConfig
+
 dataparsers = {
     "nerfstudio-data": NerfstudioDataParserConfig(),
     "minimal-parser": MinimalDataParserConfig(),
@@ -52,6 +54,7 @@ dataparsers = {
     "nerfosr-data": NeRFOSRDataParserConfig(),
     "sitcoms3d-data": Sitcoms3DDataParserConfig(),
     "colmap": ColmapDataParserConfig(),
+    "rodin": RodinDataParserConfig(),
 }
 
 external_dataparsers = discover_dataparsers()

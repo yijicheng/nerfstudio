@@ -68,7 +68,7 @@ class EventType(enum.Enum):
     CONFIG = "write_config"
 
 
-@check_main_thread
+# @check_main_thread
 def put_image(name, image: Float[Tensor, "H W C"], step: int):
     """Setter function to place images into the queue to be written out
 
@@ -82,7 +82,7 @@ def put_image(name, image: Float[Tensor, "H W C"], step: int):
     EVENT_STORAGE.append({"name": name, "write_type": EventType.IMAGE, "event": image.detach().cpu(), "step": step})
 
 
-@check_main_thread
+# @check_main_thread
 def put_scalar(name: str, scalar: Any, step: int):
     """Setter function to place scalars into the queue to be written out
 
@@ -97,7 +97,7 @@ def put_scalar(name: str, scalar: Any, step: int):
     EVENT_STORAGE.append({"name": name, "write_type": EventType.SCALAR, "event": scalar, "step": step})
 
 
-@check_main_thread
+# @check_main_thread
 def put_dict(name: str, scalar_dict: Dict[str, Any], step: int):
     """Setter function to place a dictionary of scalars into the queue to be written out
 
@@ -109,7 +109,7 @@ def put_dict(name: str, scalar_dict: Dict[str, Any], step: int):
     EVENT_STORAGE.append({"name": name, "write_type": EventType.DICT, "event": scalar_dict, "step": step})
 
 
-@check_main_thread
+# @check_main_thread
 def put_config(name: str, config_dict: Dict[str, Any], step: int):
     """Setter function to place a dictionary of scalars into the queue to be written out
 
@@ -121,7 +121,7 @@ def put_config(name: str, config_dict: Dict[str, Any], step: int):
     EVENT_STORAGE.append({"name": name, "write_type": EventType.CONFIG, "event": config_dict, "step": step})
 
 
-@check_main_thread
+# @check_main_thread
 def put_time(name: str, duration: float, step: int, avg_over_steps: bool = True, update_eta: bool = False):
     """Setter function to place a time element into the queue to be written out.
     Processes the time info according to the options.
@@ -157,7 +157,7 @@ def put_time(name: str, duration: float, step: int, avg_over_steps: bool = True,
         GLOBAL_BUFFER["events"][EventName.ETA.value] = _format_time(remain_time)
 
 
-@check_main_thread
+# @check_main_thread
 def write_out_storage():
     """Function that writes all the events in storage to all the writer locations"""
     for writer in EVENT_WRITERS:
@@ -199,7 +199,7 @@ def is_initialized():
     return "events" in GLOBAL_BUFFER
 
 
-@check_main_thread
+# @check_main_thread
 def setup_event_writer(
     is_wandb_enabled: bool,
     is_tensorboard_enabled: bool,
@@ -254,7 +254,7 @@ class Writer:
         """
         raise NotImplementedError
 
-    @check_main_thread
+    # @check_main_thread
     def write_scalar_dict(self, name: str, scalar_dict: Dict[str, Any], step: int) -> None:
         """Function that writes out all scalars from a given dictionary to the logger
 
@@ -295,7 +295,7 @@ class TimeWriter:
             )
 
 
-@decorate_all([check_main_thread])
+# @decorate_all([check_main_thread])
 class WandbWriter(Writer):
     """WandDB Writer Class"""
 
@@ -323,7 +323,7 @@ class WandbWriter(Writer):
         wandb.config.update(config_dict, allow_val_change=True)
 
 
-@decorate_all([check_main_thread])
+# @decorate_all([check_main_thread])
 class TensorboardWriter(Writer):
     """Tensorboard Writer Class"""
 

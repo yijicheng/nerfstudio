@@ -114,6 +114,8 @@ class RGBRenderer(nn.Module):
         elif background_color == "last_sample":
             # Note, this is only supported for non-packed samples.
             background_color = rgb[..., -1, :]
+        else:
+            background_color = cls.get_background_color(background_color, shape=comp_rgb.shape, device=comp_rgb.device)
 
         assert isinstance(background_color, torch.Tensor)
         comp_rgb = comp_rgb + background_color.to(comp_rgb.device) * (1.0 - accumulated_weight)

@@ -64,6 +64,10 @@ from nerfstudio.pipelines.base_pipeline import VanillaPipelineConfig
 from nerfstudio.pipelines.dynamic_batch import DynamicBatchPipelineConfig
 from nerfstudio.plugins.registry import discover_methods
 
+from nerfstudio.engine.multiple_fitting_trainer import MultipleFittingTrainerConfig
+from nerfstudio.models.kplanes import KPlanesModelConfig
+from nerfstudio.models.kplanes_ngp import KPlanesNGPModelConfig
+
 method_configs: Dict[str, TrainerConfig] = {}
 descriptions = {
     "nerfacto": "Recommended real-time model tuned for real captures. This model will be continually updated.",
@@ -79,7 +83,154 @@ descriptions = {
     "generfacto": "Generative Text to NeRF model",
     "neus": "Implementation of NeuS. (slow)",
     "neus-facto": "Implementation of NeuS-Facto. (slow)",
+    "kplanes": "Implementation of kplanes",
+    "kplanes-ngp": "Implementation of kplanes-ngp",
+    "kplanes-ngp-multiple-fitting": "Implementation of kplanes-ngp-multiple-fitting",
 }
+
+method_configs["kplanes-ngp-multiple-fitting"] = MultipleFittingTrainerConfig(
+        method_name="kplanes-ngp-multiple-fitting",
+        steps_per_eval_batch=500,
+        steps_per_save=2000,
+        steps_per_eval_all_images=30000,
+        max_num_iterations=30001,
+        mixed_precision=True,
+        pipeline=VanillaPipelineConfig(
+            datamanager=VanillaDataManagerConfig(
+                dataparser=BlenderDataParserConfig(),
+                train_num_rays_per_batch=4096,
+                eval_num_rays_per_batch=4096,
+            ),
+            model=KPlanesNGPModelConfig(
+                eval_num_rays_per_chunk=1 << 15,
+                grid_base_resolution=[128, 128, 128],
+                grid_feature_dim=32,
+                multiscale_res=[4],
+                ########################################
+                # for bounded real and synthetic scenes
+                grid_levels=1,
+                alpha_thre=0.0,
+                cone_angle=0.0,
+                # near_plane=0.01,
+                ########################################
+                loss_coefficients={
+                    "plane_tv": 0.01,
+                },
+                background_color="white",
+            ),
+        ),
+        optimizers={
+            "field.grids": {
+                "optimizer": AdamOptimizerConfig(lr=2e-2, eps=1e-12),
+                "scheduler": CosineDecaySchedulerConfig(warm_up_end=512, max_steps=30000),
+            },
+            "field.sigma_net": {
+                "optimizer": AdamOptimizerConfig(lr=2e-4, eps=1e-12),
+                "scheduler": CosineDecaySchedulerConfig(warm_up_end=512, max_steps=30000),
+            },
+            "field.color_net": {
+                "optimizer": AdamOptimizerConfig(lr=2e-4, eps=1e-12),
+                "scheduler": CosineDecaySchedulerConfig(warm_up_end=512, max_steps=30000),
+            },
+        },
+        viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
+        vis="viewer",
+    )
+
+method_configs["kplanes-ngp"] = TrainerConfig(
+        method_name="kplanes-ngp",
+        steps_per_eval_batch=500,
+        steps_per_save=2000,
+        steps_per_eval_all_images=30000,
+        max_num_iterations=30001,
+        mixed_precision=True,
+        pipeline=VanillaPipelineConfig(
+            datamanager=VanillaDataManagerConfig(
+                dataparser=BlenderDataParserConfig(),
+                train_num_rays_per_batch=4096,
+                eval_num_rays_per_batch=4096,
+            ),
+            model=KPlanesNGPModelConfig(
+                eval_num_rays_per_chunk=1 << 15,
+                grid_base_resolution=[128, 128, 128],
+                grid_feature_dim=32,
+                multiscale_res=[4],
+                ########################################
+                # for bounded real and synthetic scenes
+                grid_levels=1,
+                alpha_thre=0.0,
+                cone_angle=0.0,
+                # near_plane=0.01,
+                ########################################
+                loss_coefficients={
+                    "plane_tv": 0.01,
+                },
+                background_color="white",
+            ),
+        ),
+        optimizers={
+            "field.grids": {
+                "optimizer": AdamOptimizerConfig(lr=2e-2, eps=1e-12),
+                "scheduler": CosineDecaySchedulerConfig(warm_up_end=512, max_steps=30000),
+            },
+            "field.sigma_net": {
+                "optimizer": AdamOptimizerConfig(lr=2e-4, eps=1e-12),
+                "scheduler": CosineDecaySchedulerConfig(warm_up_end=512, max_steps=30000),
+            },
+            "field.color_net": {
+                "optimizer": AdamOptimizerConfig(lr=2e-4, eps=1e-12),
+                "scheduler": CosineDecaySchedulerConfig(warm_up_end=512, max_steps=30000),
+            },
+        },
+        viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
+        vis="viewer",
+    )
+
+method_configs["kplanes"] = TrainerConfig(
+        method_name="kplanes",
+        steps_per_eval_batch=500,
+        steps_per_save=2000,
+        steps_per_eval_all_images=30000,
+        max_num_iterations=30001,
+        mixed_precision=True,
+        pipeline=VanillaPipelineConfig(
+            datamanager=VanillaDataManagerConfig(
+                dataparser=BlenderDataParserConfig(),
+                train_num_rays_per_batch=4096,
+                eval_num_rays_per_batch=4096,
+            ),
+            model=KPlanesModelConfig(
+                eval_num_rays_per_chunk=1 << 15,
+                grid_base_resolution=[128, 128, 128],
+                grid_feature_dim=32,
+                multiscale_res=[1, 2, 4],
+                proposal_net_args_list=[
+                    {"num_output_coords": 8, "resolution": [128, 128, 128]},
+                    {"num_output_coords": 8, "resolution": [256, 256, 256]}
+                ],
+                loss_coefficients={
+                    "interlevel": 1.0,
+                    "distortion": 0.01,
+                    "plane_tv": 0.01,
+                    "plane_tv_proposal_net": 0.0001,
+                },
+                background_color="white",
+            ),
+        ),
+        optimizers={
+            "proposal_networks": {
+                "optimizer": AdamOptimizerConfig(lr=1e-2, eps=1e-12),
+                "scheduler": CosineDecaySchedulerConfig(warm_up_end=512, max_steps=30000),
+            },
+            "fields": {
+                "optimizer": AdamOptimizerConfig(lr=1e-2, eps=1e-12),
+                "scheduler": CosineDecaySchedulerConfig(warm_up_end=512, max_steps=30000),
+            },
+        },
+        viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
+        vis="viewer",
+    )
+
 
 method_configs["nerfacto"] = TrainerConfig(
     method_name="nerfacto",
