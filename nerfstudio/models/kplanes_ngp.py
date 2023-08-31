@@ -227,8 +227,8 @@ class KPlanesNGPModel(Model):
 
         # metrics
         self.psnr = PeakSignalNoiseRatio(data_range=1.0)
-        self.ssim = structural_similarity_index_measure
-        self.lpips = LearnedPerceptualImagePatchSimilarity(normalize=True)
+        # self.ssim = structural_similarity_index_measure
+        # self.lpips = LearnedPerceptualImagePatchSimilarity(normalize=True)
         self.temporal_distortion = len(self.config.grid_base_resolution) == 4  # for viewer
 
         if self.config.multiple_fitting and get_world_size() > 1:
@@ -414,8 +414,8 @@ class KPlanesNGPModel(Model):
         # all of these metrics will be logged as scalars
         metrics_dict = {
             "psnr": float(self.psnr(image, rgb).item()),
-            "ssim": float(self.ssim(image, rgb)), # type: ignore
-            "lpips": float(self.lpips(image, rgb))
+            # "ssim": float(self.ssim(image, rgb)), # type: ignore
+            # "lpips": float(self.lpips(image, rgb))
         }
         images_dict = {"img": combined_rgb, "accumulation": combined_acc, "depth": combined_depth}
 

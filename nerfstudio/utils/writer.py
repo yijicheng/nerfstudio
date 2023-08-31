@@ -31,7 +31,7 @@ from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 
 from nerfstudio.configs import base_config as cfg
-from nerfstudio.utils.decorators import check_main_thread, decorate_all
+from nerfstudio.utils.decorators import check_main_thread_with_param, decorate_all
 from nerfstudio.utils.printing import human_format
 from nerfstudio.utils.rich_utils import CONSOLE
 
@@ -44,7 +44,10 @@ def to8b(x):
 EVENT_WRITERS = []
 EVENT_STORAGE = []
 GLOBAL_BUFFER = {}
+MAIN_WRITER = True
 
+def set_main_writer(main_writer=True):
+    MAIN_WRITER = main_writer
 
 class EventName(enum.Enum):
     """Names of possible events that can be logged via Local Writer for convenience.
@@ -68,7 +71,7 @@ class EventType(enum.Enum):
     CONFIG = "write_config"
 
 
-# @check_main_thread
+@check_main_thread_with_param(MAIN_WRITER)
 def put_image(name, image: Float[Tensor, "H W C"], step: int):
     """Setter function to place images into the queue to be written out
 
@@ -82,7 +85,7 @@ def put_image(name, image: Float[Tensor, "H W C"], step: int):
     EVENT_STORAGE.append({"name": name, "write_type": EventType.IMAGE, "event": image.detach().cpu(), "step": step})
 
 
-# @check_main_thread
+@check_main_thread_with_param(MAIN_WRITER)
 def put_scalar(name: str, scalar: Any, step: int):
     """Setter function to place scalars into the queue to be written out
 
@@ -97,7 +100,7 @@ def put_scalar(name: str, scalar: Any, step: int):
     EVENT_STORAGE.append({"name": name, "write_type": EventType.SCALAR, "event": scalar, "step": step})
 
 
-# @check_main_thread
+@check_main_thread_with_param(MAIN_WRITER)
 def put_dict(name: str, scalar_dict: Dict[str, Any], step: int):
     """Setter function to place a dictionary of scalars into the queue to be written out
 
@@ -109,7 +112,7 @@ def put_dict(name: str, scalar_dict: Dict[str, Any], step: int):
     EVENT_STORAGE.append({"name": name, "write_type": EventType.DICT, "event": scalar_dict, "step": step})
 
 
-# @check_main_thread
+@check_main_thread_with_param(MAIN_WRITER)
 def put_config(name: str, config_dict: Dict[str, Any], step: int):
     """Setter function to place a dictionary of scalars into the queue to be written out
 
@@ -121,7 +124,7 @@ def put_config(name: str, config_dict: Dict[str, Any], step: int):
     EVENT_STORAGE.append({"name": name, "write_type": EventType.CONFIG, "event": config_dict, "step": step})
 
 
-# @check_main_thread
+@check_main_thread_with_param(MAIN_WRITER)
 def put_time(name: str, duration: float, step: int, avg_over_steps: bool = True, update_eta: bool = False):
     """Setter function to place a time element into the queue to be written out.
     Processes the time info according to the options.
@@ -157,7 +160,7 @@ def put_time(name: str, duration: float, step: int, avg_over_steps: bool = True,
         GLOBAL_BUFFER["events"][EventName.ETA.value] = _format_time(remain_time)
 
 
-# @check_main_thread
+@check_main_thread_with_param(MAIN_WRITER)
 def write_out_storage():
     """Function that writes all the events in storage to all the writer locations"""
     for writer in EVENT_WRITERS:
@@ -170,6 +173,8 @@ def write_out_storage():
 
     EVENT_STORAGE.clear()
 
+def close_event_writer():
+    EVENT_WRITERS.clear()
 
 def setup_local_writer(config: cfg.LoggingConfig, max_iter: int, banner_messages: Optional[List[str]] = None) -> None:
     """Initialization of all event writers specified in config
@@ -199,7 +204,7 @@ def is_initialized():
     return "events" in GLOBAL_BUFFER
 
 
-# @check_main_thread
+@check_main_thread_with_param(MAIN_WRITER)
 def setup_event_writer(
     is_wandb_enabled: bool,
     is_tensorboard_enabled: bool,
@@ -254,7 +259,7 @@ class Writer:
         """
         raise NotImplementedError
 
-    # @check_main_thread
+    @check_main_thread_with_param(MAIN_WRITER)
     def write_scalar_dict(self, name: str, scalar_dict: Dict[str, Any], step: int) -> None:
         """Function that writes out all scalars from a given dictionary to the logger
 
@@ -295,7 +300,7 @@ class TimeWriter:
             )
 
 
-# @decorate_all([check_main_thread])
+@decorate_all([check_main_thread_with_param(MAIN_WRITER)])
 class WandbWriter(Writer):
     """WandDB Writer Class"""
 
@@ -323,7 +328,7 @@ class WandbWriter(Writer):
         wandb.config.update(config_dict, allow_val_change=True)
 
 
-# @decorate_all([check_main_thread])
+@decorate_all([check_main_thread_with_param(MAIN_WRITER)])
 class TensorboardWriter(Writer):
     """Tensorboard Writer Class"""
 
@@ -375,7 +380,7 @@ def _format_time(seconds):
     return f"{ms:0.3f} ms"
 
 
-@decorate_all([check_main_thread])
+@decorate_all([check_main_thread_with_param(True)])
 class LocalWriter:
     """Local Writer Class
     TODO: migrate to prettyprint

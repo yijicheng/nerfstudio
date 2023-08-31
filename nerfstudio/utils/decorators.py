@@ -72,7 +72,6 @@ def check_eval_enabled(func: Callable) -> Callable:
 
     return wrapper
 
-
 def check_main_thread(func: Callable) -> Callable:
     """Decorator: check if you are on main thread"""
 
@@ -83,3 +82,18 @@ def check_main_thread(func: Callable) -> Callable:
         return ret
 
     return wrapper
+
+def check_main_thread_with_param(main_writer: bool = True):
+    def check_main_thread(func: Callable) -> Callable:
+        """Decorator: check if you are on main thread"""
+
+        def wrapper(*args, **kwargs):
+            ret = None
+            if comms.is_main_process() and main_writer:
+                ret = func(*args, **kwargs)
+            elif not main_writer:
+                ret = func(*args, **kwargs)
+            return ret
+
+        return wrapper
+    return check_main_thread

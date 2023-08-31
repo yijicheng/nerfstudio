@@ -126,6 +126,7 @@ class MultipleFittingTrainer(Trainer):
         )
         self.optimizers = self.setup_optimizers()
 
+        writer.set_main_writer(False)
         assert not (self.config.is_viewer_enabled() or self.config.is_viewer_beta_enabled())
         # # set up viewer if enabled
         # viewer_log_path = self.base_dir / self.config.viewer.relative_log_filename
@@ -350,6 +351,7 @@ class MultipleFittingTrainer(Trainer):
 
         # write out any remaining events (e.g., total train time)
         writer.write_out_storage()
+        writer.close_event_writer()
 
         table = Table(
             title=None,
