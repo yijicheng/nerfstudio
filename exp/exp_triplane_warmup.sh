@@ -5,7 +5,7 @@ cd nerfstudio
 subject_file=/mnt/blob/data/rodin/data/data_10persons.txt
 # subject_file=/mnt/blob2/avatar/person_list/2.18_hd.txt
 num_train_subjects=10
-stage1_output_dir=../outputs/stage1_128hiddens
+stage1_output_dir=../outputs/stage1_triplane_warmup
 stage1_method_name=kplanes-ngp-multiple-fitting
 stage1_max_num_iterations=5001
 stage1_max_num_outer_epochs=30
@@ -17,7 +17,7 @@ grids_lr=2e-2
 decoders_lr=2e-5
 sigma_grad_clip=0.01
 color_grad_clip=0.01
-decoders_wait_every_steps=None # $((stage1_max_num_iterations - 1))
+decoders_wait_every_steps=$((stage1_max_num_iterations - 1))
 
 # stage2 config
 unseen_subject_file=/mnt/blob/data/rodin/data/person_test_10.txt
@@ -74,8 +74,6 @@ do
             --logging.local-writer.max-log-size=1 \
             --log-gradients=True \
             --num_train_subjects=${num_train_subjects} \
-            --pipeline.model.sigma-decoder-hiddens=128 \
-            --pipeline.model.color-decoder-hiddens=128 \
             rodin
         wait
     fi
@@ -111,8 +109,6 @@ do
                 --mixed-precision=False \
                 --logging.local-writer.max-log-size=1 \
                 --log-gradients=True \
-                --pipeline.model.sigma-decoder-hiddens=128 \
-                --pipeline.model.color-decoder-hiddens=128 \
                 rodin \
                 data=/mnt/blob2/render_output_hd/${subject} &
 
@@ -175,8 +171,6 @@ do
                 --mixed-precision=False \
                 --logging.local-writer.max-log-size=1 \
                 --log-gradients=True \
-                --pipeline.model.sigma-decoder-hiddens=128 \
-                --pipeline.model.color-decoder-hiddens=128 \
                 rodin \
                 data=/mnt/blob2/render_output_hd/${subject} &
 

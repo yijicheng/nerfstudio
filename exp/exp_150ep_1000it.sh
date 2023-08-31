@@ -2,10 +2,10 @@
 cd nerfstudio
 
 # stage1 config
-# subject_file=/mnt/blob/data/rodin/data/data_10persons.txt
-subject_file=/mnt/blob2/avatar/person_list/2.18_hd.txt
-num_train_subjects=8
-stage1_output_dir=../outputs/stage1_parallel_subject_fitting_150ep_1000it_10ddp_fp32_2e-2_2e-4_lr
+subject_file=/mnt/blob/data/rodin/data/data_10persons.txt
+# subject_file=/mnt/blob2/avatar/person_list/2.18_hd.txt
+num_train_subjects=10
+stage1_output_dir=../outputs/stage1_150ep_1000it
 stage1_method_name=kplanes-ngp-multiple-fitting
 stage1_max_num_iterations=1001
 stage1_max_num_outer_epochs=150
@@ -14,9 +14,10 @@ stage1_steps_per_eval_batch=1000
 stage1_steps_per_eval_all_images=1000
 stage1_steps_per_save=1000
 grids_lr=2e-2
-decoders_lr=2e-4
-sigma_grad_clip=0.1
-color_grad_clip=0.3
+decoders_lr=2e-5
+sigma_grad_clip=0.01
+color_grad_clip=0.01
+decoders_wait_every_steps=None # $((stage1_max_num_iterations - 1))
 
 # stage2 config
 unseen_subject_file=/mnt/blob/data/rodin/data/person_test_10.txt
@@ -48,9 +49,9 @@ do
     # stage1
     if [ "$task" = "stage1_train" ] && [ "$data" = "seen" ]
     then
-        python scripts/train_parallel_subject.py \
+        CUDA_VISIBLE_DEVICES=0,1,2,3,4 python scripts/train_parallel_subject.py \
             ${stage1_method_name} \
-            --machine.num-devices=8 \
+            --machine.num-devices=5 \
             --vis=tensorboard \
             --output-dir=${stage1_output_dir} \
             --pipeline.datamanager.train-num-rays-per-batch=8192 \
@@ -65,8 +66,10 @@ do
             --optimizers.field.grids.optimizer.lr=${grids_lr} \
             --optimizers.field.sigma-net.optimizer.lr=${decoders_lr} \
             --optimizers.field.color-net.optimizer.lr=${decoders_lr} \
-            --optimizers.field.sigma_net.optimizer.max_norm=${sigma_grad_clip} \
-            --optimizers.field.color_net.optimizer.max_norm=${color_grad_clip} \
+            --optimizers.field.sigma-net.optimizer.max-norm=${sigma_grad_clip} \
+            --optimizers.field.color-net.optimizer.max-norm=${color_grad_clip} \
+            --optimizers.field.sigma-net.scheduler.wait-every-steps=${decoders_wait_every_steps} \
+            --optimizers.field.color-net.scheduler.wait-every-steps=${decoders_wait_every_steps} \
             --mixed-precision=False \
             --logging.local-writer.max-log-size=1 \
             --log-gradients=True \
@@ -82,8 +85,8 @@ do
         while read subject && [ ${count} -le 9]  
         do  
             echo "Line ${count}: ${subject}"
-
-            decoder_ckpt=`python utils/find_subject_checkpoint.py ${subject} ${stage1_output_dir} ${stage1_method_name} ${stage1_max_num_iterations} ${stage1_max_num_outer_epochs}`
+            decoder_subject=`tail -n 1 ${subject_file}`
+            decoder_ckpt=`python utils/find_subject_checkpoint.py ${decoder_subject} ${stage1_output_dir} ${stage1_method_name} ${stage1_max_num_iterations} ${stage1_max_num_outer_epochs}`
             stage2_output_dir="${stage1_output_dir}_stage2"
 
             CUDA_VISIBLE_DEVICES=${count} python scripts/train.py \
@@ -144,11 +147,11 @@ do
         while read subject && [ ${count} -le $((num_train_subjects - 1)) ]  
         do  
             echo "Line ${count}: ${subject}"
-
-            decoder_ckpt=`python utils/find_subject_checkpoint.py ${subject} ${stage1_output_dir} ${stage1_method_name} ${stage1_max_num_iterations} ${satge1_max_num_outer_epochs}`
+            decoder_subject=`tail -n 1 ${subject_file}`
+            decoder_ckpt=`python utils/find_subject_checkpoint.py ${decoder_subject} ${stage1_output_dir} ${stage1_method_name} ${stage1_max_num_iterations} ${stage1_max_num_outer_epochs}`
             stage2_output_dir="${stage1_output_dir}_stage2"
 
-            python scripts/train.py \
+            CUDA_VISIBLE_DEVICES=${count} python scripts/train.py \
                 ${stage2_method_name} \
                 --machine.num-devices=1 \
                 --vis=tensorboard \
@@ -187,7 +190,7 @@ do
             config_path=dirname "$(dirname "$(realpath ${stage2_ckpt})")"
             config_path="${config_path}/config.yml"
             eval_stage2_output_dir=stage2_output_dir="${stage2_output_dir}_eval"
-            ns-eval \
+            CUDA_VISIBLE_DEVICES=${count} ns-eval \
                 --load-config=${config_path} \
                 --output-path=${eval_output_dir}/${subject}/output.json \
                 --render-output-path=${eval_output_dir}/${subject} &
