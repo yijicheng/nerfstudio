@@ -16,7 +16,7 @@ stage1_steps_per_save=5000
 grids_lr=2e-2
 decoders_lr=2e-4
 sigma_grad_clip=0.1
-color_grad_clip=0.3
+color_grad_clip=1.0
 
 # stage2 config
 unseen_subject_file=/mnt/blob/data/rodin/data/person_test_10.txt

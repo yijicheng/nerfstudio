@@ -66,6 +66,7 @@ from nerfstudio.utils.rich_utils import CONSOLE
 
 import os
 from pathlib import Path
+import time
 from nerfstudio.engine.multiple_fitting_trainer import MultipleFittingTrainerConfig
 from nerfstudio.data.datasets.base_dataset import InputDataset
 from nerfstudio.utils.comms import get_rank, get_world_size, is_main_process
@@ -187,6 +188,8 @@ def train_loop(local_rank: int, world_size: int, config: MultipleFittingTrainerC
     # previous_subject: Optional[str] = None
     for epoch in range(config.max_num_outer_epochs):
         for subject in shard_subject:
+
+            s = time.time()
             # experiment initialization
             config.set_timestamp()
             config.epoch = epoch
@@ -231,7 +234,7 @@ def train_loop(local_rank: int, world_size: int, config: MultipleFittingTrainerC
             # after the next loop.
 
             _set_random_seed(config.machine.seed + global_rank + global_step)
-
+            CONSOLE.print(f"config preparation: {time.time() - s}")
             trainer.reinit(config)
             trainer.resetup()
             trainer.train()

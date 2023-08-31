@@ -44,10 +44,9 @@ def to8b(x):
 EVENT_WRITERS = []
 EVENT_STORAGE = []
 GLOBAL_BUFFER = {}
-MAIN_WRITER = True
 
-def set_main_writer(main_writer=True):
-    MAIN_WRITER = main_writer
+MAIN_WRITER = False
+CONSOLE.print(f"set_main_writer: {MAIN_WRITER}")
 
 class EventName(enum.Enum):
     """Names of possible events that can be logged via Local Writer for convenience.

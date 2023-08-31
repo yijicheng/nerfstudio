@@ -48,6 +48,7 @@ from nerfstudio.viewer_beta.viewer import Viewer as ViewerBetaState
 from nerfstudio.engine.trainer import TrainerConfig
 from nerfstudio.engine.trainer import Trainer
 from nerfstudio.utils.comms import is_main_process, get_rank
+import time
 
 TRAIN_INTERATION_OUTPUT = Tuple[torch.Tensor, Dict[str, torch.Tensor], Dict[str, torch.Tensor]]
 TORCH_DEVICE = str
@@ -126,7 +127,6 @@ class MultipleFittingTrainer(Trainer):
         )
         self.optimizers = self.setup_optimizers()
 
-        writer.set_main_writer(False)
         assert not (self.config.is_viewer_enabled() or self.config.is_viewer_beta_enabled())
         # # set up viewer if enabled
         # viewer_log_path = self.base_dir / self.config.viewer.relative_log_filename
@@ -191,21 +191,24 @@ class MultipleFittingTrainer(Trainer):
         CONSOLE.log(f"Saving checkpoints to: {self.checkpoint_dir}")
 
     def resetup(self) -> None:
+        s = time.time()
         self.pipeline.config = self.config.pipeline
         self.pipeline.datamanager = self.config.pipeline.datamanager.setup(
             device=self.device, test_mode=self.pipeline.test_mode, world_size=self.world_size, local_rank=self.local_rank
         )
         self.pipeline.datamanager.to(self.device)
+        CONSOLE.print(f"datamanager: {time.time() - s}")
 
+        s = time.time()
         if self.config.pipeline.model.decoder_checkpoint is not None or self.config.pipeline.model.subject_checkpoint is not None: # type: ignore
             assert self.config.load_dir is None and self.config.load_dir is None
         self.pipeline.model.scene_box = self.pipeline.datamanager.train_dataset.scene_box
         self.pipeline.model.num_train_data = len(self.pipeline.datamanager.train_dataset)
         self.pipeline.model.metadata = self.pipeline.datamanager.train_dataset.metadata
-        self.pipeline.model._reload_checkpoint() # type: ignore # TODO
+        self.pipeline.model._reload_checkpoint() # type: ignore
 
         # self._reload_optimizer()
-        if self.config.pipeline.model.freeze_decoder: # type: ignore # TODO
+        if self.config.pipeline.model.freeze_decoder: # type: ignore
             self.optimizers.optimizers.pop('field.sigma_net')
             self.optimizers.schedulers.pop('field.sigma_net')
             self.optimizers.optimizers.pop('field.color_net')
@@ -218,7 +221,9 @@ class MultipleFittingTrainer(Trainer):
                 pipeline=self.pipeline,
             )
         )
+        CONSOLE.print(f"model: {time.time() - s}")
 
+        s = time.time()
         # set up writers/profilers if enabled
         banner_messages = None
         writer_log_path = self.base_dir / self.config.logging.relative_log_dir
@@ -234,6 +239,7 @@ class MultipleFittingTrainer(Trainer):
         )
         writer.put_config(name="config", config_dict=dataclasses.asdict(self.config), step=0)
         profiler.setup_profiler(self.config.logging, writer_log_path)
+        CONSOLE.print(f"writer: {time.time() - s}")
 
     def _reload_optimizer(self) -> None:
         load_decoder_optimizer = self.config.decoder_optimizer_checkpoint
