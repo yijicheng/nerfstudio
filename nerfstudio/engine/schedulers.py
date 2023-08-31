@@ -153,7 +153,7 @@ class CosineDecaySchedulerConfig(SchedulerConfig):
     """Learning rate alpha value"""
     max_steps: int = 300000
     """The maximum number of steps."""
-
+    wait_every_steps: Optional[int] = None
 
 class CosineDecayScheduler(Scheduler):
     """Cosine decay scheduler with linear warmup"""
@@ -162,7 +162,9 @@ class CosineDecayScheduler(Scheduler):
 
     def get_scheduler(self, optimizer: Optimizer, lr_init: float) -> LRScheduler:
         def func(step):
-            if step < self.config.warm_up_end:
+            if self.config.wait_every_steps is not None and step % self.config.wait_every_steps < 100:
+                learning_factor = 0.
+            elif step < self.config.warm_up_end:
                 learning_factor = step / self.config.warm_up_end
             else:
                 alpha = self.config.learning_rate_alpha

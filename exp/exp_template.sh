@@ -14,9 +14,10 @@ stage1_steps_per_eval_batch=1000
 stage1_steps_per_eval_all_images=5000
 stage1_steps_per_save=5000
 grids_lr=2e-2
-decoders_lr=2e-4
-sigma_grad_clip=0.1
-color_grad_clip=1.0
+decoders_lr=2e-5
+sigma_grad_clip=None
+color_grad_clip=None
+decoders_wait_every_steps=None # $((stage1_max_num_iterations - 1))
 
 # stage2 config
 unseen_subject_file=/mnt/blob/data/rodin/data/person_test_10.txt
@@ -65,8 +66,10 @@ do
             --optimizers.field.grids.optimizer.lr=${grids_lr} \
             --optimizers.field.sigma-net.optimizer.lr=${decoders_lr} \
             --optimizers.field.color-net.optimizer.lr=${decoders_lr} \
-            --optimizers.field.sigma_net.optimizer.max_norm=${sigma_grad_clip} \
-            --optimizers.field.color_net.optimizer.max_norm=${color_grad_clip} \
+            --optimizers.field.sigma-net.optimizer.max-norm=${sigma_grad_clip} \
+            --optimizers.field.color-net.optimizer.max-norm=${color_grad_clip} \
+            --optimizers.field.sigma-net.scheduler.wait-every-steps=${decoders_wait_every_steps} \
+            --optimizers.field.color-net.scheduler.wait-every-steps=${decoders_wait_every_steps} \
             --mixed-precision=False \
             --logging.local-writer.max-log-size=1 \
             --log-gradients=True \
