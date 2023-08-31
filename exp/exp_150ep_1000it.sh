@@ -15,8 +15,8 @@ stage1_steps_per_eval_all_images=1000
 stage1_steps_per_save=1000
 grids_lr=2e-2
 decoders_lr=2e-5
-sigma_grad_clip=0.01
-color_grad_clip=0.01
+sigma_grad_clip=None
+color_grad_clip=None
 decoders_wait_every_steps=None # $((stage1_max_num_iterations - 1))
 
 # stage2 config

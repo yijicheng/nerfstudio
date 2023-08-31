@@ -5,7 +5,7 @@ cd nerfstudio
 subject_file=/mnt/blob/data/rodin/data/data_10persons.txt
 # subject_file=/mnt/blob2/avatar/person_list/2.18_hd.txt
 num_train_subjects=10
-stage1_output_dir=../outputs/stage1_2e-3_2e-5lr
+stage1_output_dir=../outputs/template
 stage1_method_name=kplanes-ngp-multiple-fitting
 stage1_max_num_iterations=5001
 stage1_max_num_outer_epochs=30
@@ -15,8 +15,8 @@ stage1_steps_per_eval_all_images=5000
 stage1_steps_per_save=5000
 grids_lr=2e-2
 decoders_lr=2e-5
-sigma_grad_clip=0.01
-color_grad_clip=0.01
+sigma_grad_clip=None
+color_grad_clip=None
 decoders_wait_every_steps=None # $((stage1_max_num_iterations - 1))
 
 # stage2 config
